@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import type { PatientProfile, PatientDocument } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, CalendarDays, Mail, FileText, BriefcaseMedical, Trash2 } from "lucide-react";
+import { User, CalendarDays, Mail, FileText, BriefcaseMedical, Trash2, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
