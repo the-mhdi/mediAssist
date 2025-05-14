@@ -128,7 +128,7 @@ export default function ViewPatientPage() {
               </div>
             </div>
              <Badge variant="outline" className="text-sm py-1 px-3 mt-2 sm:mt-0">
-                Profile Created: {new Date(patient.createdAt).toLocaleDateString()}
+                Profile Created: {patient.createdAt.toLocaleDateString()}
             </Badge>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
@@ -139,7 +139,7 @@ export default function ViewPatientPage() {
               </div>
               <div className="flex items-center">
                 <CalendarDays className="h-5 w-5 mr-3 text-primary" />
-                <span>Born on: {new Date(patient.dateOfBirth).toLocaleDateString()}</span>
+                <span>Born on: {patient.dateOfBirth.toLocaleDateString()}</span>
               </div>
             </div>
             <div className="space-y-3">
@@ -177,9 +177,9 @@ export default function ViewPatientPage() {
                         <TableRow key={doc.id}>
                           <TableCell className="font-medium">{doc.fileName}</TableCell>
                           <TableCell><Badge variant="secondary">{doc.fileType.split('/')[1] || doc.fileType}</Badge></TableCell>
-                          <TableCell>{new Date(doc.uploadDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{doc.uploadDate.toLocaleDateString()}</TableCell>
                           <TableCell className="text-right space-x-2">
-                             <Button variant="outline" size="sm" onClick={() => window.open(doc.url, '_blank')} disabled={doc.url === '#'}>
+                             <Button variant="outline" size="sm" onClick={() => window.open(doc.url, '_blank')} disabled={doc.url === '#' || !doc.url}>
                                 <Eye className="mr-1 h-3 w-3" /> View
                             </Button>
                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteDocument(doc.id, doc.fileName)}>

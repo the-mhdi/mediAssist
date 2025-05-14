@@ -22,18 +22,18 @@ export interface PatientProfile {
   id: string;
   name: string;
   email: string; // for login
-  dateOfBirth: string;
+  dateOfBirth: Date; // Changed from string to Date
   generatedPassword?: string; // for login, to be shown to doctor
-  medicalHistorySummary?: string; // entered by doctor
-  createdAt: string;
+  medicalHistorySummary?: string | null; // Prisma optional string can be null
+  createdAt: Date; // Changed from string to Date
 }
 
 export interface PatientDocument {
   id:string;
   patientId: string;
   fileName: string;
-  uploadDate: string;
-  url: string; // mock URL
+  uploadDate: Date; // Changed from string to Date
+  url: string; 
   fileType: string;
 }
 

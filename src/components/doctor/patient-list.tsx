@@ -117,7 +117,7 @@ export default function PatientList() {
               <TableRow key={patient.id}>
                 <TableCell className="font-medium">{patient.name}</TableCell>
                 <TableCell>{patient.email}</TableCell>
-                <TableCell>{new Date(patient.dateOfBirth).toLocaleDateString()}</TableCell>
+                <TableCell>{patient.dateOfBirth.toLocaleDateString()}</TableCell>
                 <TableCell className="text-right space-x-2">
                   <Button variant="outline" size="sm" asChild>
                     <Link href={`/doctor-dashboard/view-patient/${patient.id}`}>
@@ -134,7 +134,7 @@ export default function PatientList() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete the patient profile for {patient.name}.
+                          This action cannot be undone. This will permanently delete the patient profile for {patient.name} and all associated documents.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
