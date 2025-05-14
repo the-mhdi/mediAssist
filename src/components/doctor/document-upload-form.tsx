@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, FormEvent } from "react";
@@ -8,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { UploadCloud, FileText, X } from "lucide-react";
 import type { PatientDocument } from "@/lib/types";
+import { addPatientDocument, type AddPatientDocumentData } from "@/services/patientService";
 
 interface DocumentUploadFormProps {
   patientId: string;
@@ -23,6 +25,8 @@ export default function DocumentUploadForm({ patientId, patientName, onDocumentU
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
+    } else {
+      setSelectedFile(null);
     }
   };
 
@@ -38,31 +42,38 @@ export default function DocumentUploadForm({ patientId, patientName, onDocumentU
     }
 
     setIsUploading(true);
-    // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const newDocument: PatientDocument = {
-      id: `doc-${Date.now().toString().slice(-6)}`,
-      patientId,
-      fileName: selectedFile.name,
-      fileType: selectedFile.type,
-      uploadDate: new Date().toISOString(),
-      url: URL.createObjectURL(selectedFile), // Mock URL, browser-specific
-    };
     
-    onDocumentUploaded(newDocument);
+    try {
+      const documentData: AddPatientDocumentData = {
+        fileName: selectedFile.name,
+        fileType: selectedFile.type,
+        // In a real app, you'd upload the file to a storage service (e.g., Firebase Storage)
+        // and get a URL back. For this mock, we'll use a placeholder or object URL.
+        url: URL.createObjectURL(selectedFile), // Mock URL, browser-specific, temporary
+      };
+      
+      const newDocument = await addPatientDocument(patientId, documentData);
+      onDocumentUploaded(newDocument);
 
-    toast({
-      title: "Upload Successful (Mock)",
-      description: `Document "${selectedFile.name}" uploaded for ${patientName}.`,
-    });
-    
-    setSelectedFile(null); 
-    // Clear the actual input field value
-    const fileInput = document.getElementById('document-upload-input') as HTMLInputElement;
-    if(fileInput) fileInput.value = "";
+      toast({
+        title: "Upload Successful",
+        description: `Document "${selectedFile.name}" uploaded for ${patientName}.`,
+      });
+      
+      setSelectedFile(null); 
+      const fileInput = document.getElementById('document-upload-input') as HTMLInputElement;
+      if(fileInput) fileInput.value = "";
 
-    setIsUploading(false);
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast({
+        title: "Upload Failed",
+        description: "Could not upload the document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -70,7 +81,7 @@ export default function DocumentUploadForm({ patientId, patientName, onDocumentU
       <CardHeader>
         <CardTitle className="text-xl flex items-center"><UploadCloud className="mr-2 h-5 w-5 text-primary"/>Upload Patient Document</CardTitle>
         <CardDescription>
-          Select a document to upload for {patientName}. (Max 10MB, PDF, DOCX, JPG, PNG) - Mocked
+          Select a document to upload for {patientName}. (Max 10MB, PDF, DOCX, JPG, PNG)
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -91,7 +102,7 @@ export default function DocumentUploadForm({ patientId, patientName, onDocumentU
                 <FileText className="h-5 w-5 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">{selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</span>
               </div>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setSelectedFile(null)} disabled={isUploading}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => {setSelectedFile(null); const fi = document.getElementById('document-upload-input') as HTMLInputElement; if(fi) fi.value = "";}} disabled={isUploading}>
                 <X className="h-4 w-4" />
               </Button>
             </div>

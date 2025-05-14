@@ -5,7 +5,7 @@ import AppLayout from "@/components/layout/app-layout";
 import DocumentUploadForm from "@/components/doctor/document-upload-form";
 import DoctorPatientChatInterface from "@/components/doctor/doctor-patient-chat-interface";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { PatientProfile, PatientDocument } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,26 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-
-// Mock data fetching function
-const fetchPatientDetails = async (patientId: string): Promise<PatientProfile | null> => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
-  const mockPatients: PatientProfile[] = [
-    { id: "pat001", name: "Alice Wonderland", email: "alice@example.com", dateOfBirth: "1990-05-15", medicalHistorySummary: "Asthma, seasonal allergies. Takes Ventolin as needed.", createdAt: "2023-01-10T10:00:00Z" },
-    { id: "pat002", name: "Bob The Builder", email: "bob@example.com", dateOfBirth: "1985-11-20", medicalHistorySummary: "Hypertension, controlled with Lisinopril 10mg daily. Non-smoker.", createdAt: "2023-01-15T11:00:00Z"},
-    { id: "pat003", name: "Charlie Brown", email: "charlie@example.com", dateOfBirth: "2000-01-10", medicalHistorySummary: "Generally healthy. Annual check-ups are regular. No known allergies.", createdAt: "2023-02-01T09:30:00Z" },
-    { id: "pat004", name: "Diana Prince", email: "diana@example.com", dateOfBirth: "1978-07-04", medicalHistorySummary: "Type 2 Diabetes, managed with Metformin 500mg BID and diet control. Last HbA1c was 6.5%.", createdAt: "2022-12-05T14:15:00Z" },
-  ];
-  return mockPatients.find(p => p.id === patientId) || null;
-};
-
-// Mock documents
-const mockInitialDocuments: PatientDocument[] = [
-    { id: "doc001", patientId: "pat001", fileName: "blood_test_results.pdf", uploadDate: "2023-06-15T10:00:00Z", url: "#", fileType: "application/pdf" },
-    { id: "doc002", patientId: "pat001", fileName: "xray_chest.jpg", uploadDate: "2023-07-01T14:30:00Z", url: "#", fileType: "image/jpeg" },
-];
-
+import { getPatientById, getDocumentsByPatientId, deletePatientDocument } from "@/services/patientService";
 
 export default function ViewPatientPage() {
   const params = useParams();
@@ -44,27 +25,50 @@ export default function ViewPatientPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
+  const loadPatientData = useCallback(async () => {
     if (patientId) {
-      const loadData = async () => {
-        setIsLoading(true);
-        const fetchedPatient = await fetchPatientDetails(patientId);
+      setIsLoading(true);
+      try {
+        const fetchedPatient = await getPatientById(patientId);
         setPatient(fetchedPatient);
-        // Load mock documents for this patient
-        setDocuments(mockInitialDocuments.filter(doc => doc.patientId === patientId));
+        if (fetchedPatient) {
+          const fetchedDocuments = await getDocumentsByPatientId(patientId);
+          setDocuments(fetchedDocuments);
+        } else {
+          setDocuments([]); // No patient, no documents
+        }
+      } catch (error) {
+        console.error("Failed to load patient data:", error);
+        toast({ title: "Error", description: "Could not load patient details.", variant: "destructive" });
+        setPatient(null);
+        setDocuments([]);
+      } finally {
         setIsLoading(false);
-      };
-      loadData();
+      }
     }
-  }, [patientId]);
+  }, [patientId, toast]);
+
+  useEffect(() => {
+    loadPatientData();
+  }, [loadPatientData]);
 
   const handleDocumentUploaded = (newDocument: PatientDocument) => {
     setDocuments(prevDocs => [newDocument, ...prevDocs]);
   };
   
-  const handleDeleteDocument = (docId: string) => {
-    setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== docId));
-    toast({ title: "Document Deleted", description: "The document has been removed. (Mocked)" });
+  const handleDeleteDocument = async (docId: string, docName: string) => {
+    try {
+      const success = await deletePatientDocument(docId);
+      if (success) {
+        setDocuments(prevDocs => prevDocs.filter(doc => doc.id !== docId));
+        toast({ title: "Document Deleted", description: `Document "${docName}" has been removed.` });
+      } else {
+        toast({ title: "Deletion Failed", description: `Could not delete document "${docName}".`, variant: "destructive"});
+      }
+    } catch (error) {
+      console.error("Failed to delete document:", error);
+      toast({ title: "Error", description: "An error occurred while deleting the document.", variant: "destructive"});
+    }
   };
 
   if (isLoading) {
@@ -178,7 +182,7 @@ export default function ViewPatientPage() {
                              <Button variant="outline" size="sm" onClick={() => window.open(doc.url, '_blank')} disabled={doc.url === '#'}>
                                 <Eye className="mr-1 h-3 w-3" /> View
                             </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteDocument(doc.id)}>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteDocument(doc.id, doc.fileName)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                           </TableCell>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,16 +25,7 @@ import { CalendarIcon, UserPlus } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-
-const generatePassword = (length = 12) => {
-  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * charset.length);
-    password += charset[randomIndex];
-  }
-  return password;
-};
+import { addPatientProfile, type AddPatientProfileData } from "@/services/patientService";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -56,22 +48,30 @@ export default function GeneratePatientProfileForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const newPassword = generatePassword();
-    const newProfile: PatientProfile = {
-      id: `pat-${Date.now().toString().slice(-6)}`, // Mock ID
-      ...values,
-      dateOfBirth: values.dateOfBirth.toISOString(),
-      generatedPassword: newPassword,
-      createdAt: new Date().toISOString(),
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const profileData: AddPatientProfileData = {
+      name: values.name,
+      email: values.email,
+      dateOfBirth: values.dateOfBirth, // Pass as Date object
+      medicalHistorySummary: values.medicalHistorySummary || undefined, // Pass undefined if empty
     };
-    console.log("Generated Patient Profile:", newProfile);
-    setGeneratedProfile(newProfile);
-    toast({
-      title: "Patient Profile Generated!",
-      description: `Profile for ${values.name} created successfully.`,
-    });
-    form.reset(); 
+
+    try {
+      const newProfile = await addPatientProfile(profileData);
+      setGeneratedProfile(newProfile);
+      toast({
+        title: "Patient Profile Generated!",
+        description: `Profile for ${values.name} created successfully.`,
+      });
+      form.reset(); 
+    } catch (error) {
+      console.error("Failed to generate profile:", error);
+      toast({
+        title: "Error",
+        description: "Could not generate patient profile.",
+        variant: "destructive",
+      });
+    }
   }
 
   return (
@@ -188,7 +188,7 @@ export default function GeneratePatientProfileForm() {
               <p><strong>Email:</strong> {generatedProfile.email}</p>
               <p><strong>Temporary Password:</strong> <span className="font-mono bg-muted p-1 rounded">{generatedProfile.generatedPassword}</span></p>
               <p className="text-sm text-muted-foreground">
-                Please share these credentials securely with the patient. They should change their password upon first login (feature not implemented in this mock).
+                Please share these credentials securely with the patient. They should change their password upon first login (feature not implemented).
               </p>
             </CardContent>
           </Card>
