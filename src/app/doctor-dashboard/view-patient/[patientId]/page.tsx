@@ -1,13 +1,15 @@
-"use client"; // This page needs to be client component to use hooks like useParams and manage state
+
+"use client"; 
 
 import AppLayout from "@/components/layout/app-layout";
 import DocumentUploadForm from "@/components/doctor/document-upload-form";
+import DoctorPatientChatInterface from "@/components/doctor/doctor-patient-chat-interface";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { PatientProfile, PatientDocument } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, CalendarDays, Mail, FileText, BriefcaseMedical, Trash2, Eye } from "lucide-react";
+import { User, CalendarDays, Mail, FileText, BriefcaseMedical, Trash2, Eye, BotMessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -113,7 +115,7 @@ export default function ViewPatientPage() {
           <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20 border-2 border-primary">
-                 <Image src={`https://placehold.co/100x100.png?text=${getInitials(patient.name)}`} alt={patient.name} width={80} height={80} className="object-cover" data-ai-hint="profile avatar" />
+                 <Image src={`https://placehold.co/100x100.png?text=${getInitials(patient.name)}`} alt={patient.name} width={80} height={80} className="object-cover" data-ai-hint="profile avatar"/>
                 <AvatarFallback className="text-3xl bg-secondary">{getInitials(patient.name)}</AvatarFallback>
               </Avatar>
               <div>
@@ -194,6 +196,21 @@ export default function ViewPatientPage() {
             <DocumentUploadForm patientId={patient.id} patientName={patient.name} onDocumentUploaded={handleDocumentUploaded} />
           </div>
         </div>
+
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl flex items-center">
+              <BotMessageSquare className="mr-2 h-5 w-5 text-primary"/> Configure Patient AI Assistant
+            </CardTitle>
+            <CardDescription>
+              Interact with the AI to set context, prompts, or guidelines for {patient.name}'s chat experience. This information will (notionally) be used by the patient's AI assistant.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DoctorPatientChatInterface patientId={patient.id} patientName={patient.name} />
+          </CardContent>
+        </Card>
+
       </div>
     </AppLayout>
   );
