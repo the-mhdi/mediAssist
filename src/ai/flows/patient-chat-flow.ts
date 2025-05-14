@@ -9,14 +9,16 @@
  */
 
 import { ai } from '@/ai/genkit';
-import type { ChatMessageInput } from '@/lib/types';
+import type { ChatMessageInput } from '@/lib/types'; // This is for external type, internal schema is below
 import { z } from 'genkit';
 
+// Internal schema for chat messages within the flow
 const ChatMessageSchema = z.object({
   id: z.string(),
   sender: z.enum(['user', 'ai']),
   text: z.string(),
   timestamp: z.string().describe("ISO date string for the message timestamp."),
+  isUser: z.boolean().optional().describe("True if the sender is 'user'"),
 });
 
 const PatientChatInputSchema = z.object({
@@ -38,7 +40,7 @@ export async function getPatientAIChatResponse(input: PatientChatInput): Promise
 
 const patientChatPrompt = ai.definePrompt({
   name: 'patientChatPrompt',
-  input: { schema: PatientChatInputSchema },
+  input: { schema: PatientChatInputSchema }, // This schema now includes optional isUser
   output: { schema: PatientChatOutputSchema },
   prompt: `You are MediChat, a friendly and helpful AI medical assistant.
 Your goal is to provide general medical information and support to users.
@@ -53,7 +55,7 @@ IMPORTANT: You must ALWAYS include the following disclaimer at the end of your r
 
 Conversation History (if any):
 {{#each history}}
-{{#if (eq sender "user")}}- User (at {{timestamp}}): {{{text}}}
+{{#if isUser}}- User (at {{timestamp}}): {{{text}}}
 {{else}}- AI (at {{timestamp}}): {{{text}}}
 {{/if}}
 {{/each}}
@@ -72,11 +74,22 @@ Keep your responses concise and easy to understand.
 const patientChatFlow = ai.defineFlow(
   {
     name: 'patientChatFlow',
-    inputSchema: PatientChatInputSchema,
+    inputSchema: PatientChatInputSchema, // External input will match this due to optional isUser
     outputSchema: PatientChatOutputSchema,
   },
-  async (input) => {
-    const { output } = await patientChatPrompt(input);
+  async (rawInput: PatientChatInput) => {
+    // Process history to add the isUser flag for templating
+    const processedHistory = rawInput.history.map(msg => ({
+      ...msg,
+      isUser: msg.sender === 'user',
+    }));
+
+    const promptInput = {
+      ...rawInput,
+      history: processedHistory,
+    };
+
+    const { output } = await patientChatPrompt(promptInput);
     if (!output) {
       return { response: "I'm sorry, I wasn't able to generate a response. Please try again." };
     }
