@@ -1,25 +1,32 @@
+
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage, ChatMessageInput } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Bot, CornerDownLeft, User } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { getPatientAIChatResponse } from "@/ai/flows/patient-chat-flow";
+import { useAuth } from "@/contexts/auth-context";
+
 
 export default function ChatInterface() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: "1", sender: "ai", text: "Hello! I'm MediChat, your AI assistant. How can I help you today?", timestamp: new Date() },
   ]);
   const [inputValue, setInputValue] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isSending) return;
 
+    setIsSending(true);
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       sender: "user",
@@ -29,16 +36,39 @@ export default function ChatInterface() {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
 
-    // Simulate AI response
-    setTimeout(() => {
+    // Prepare history for AI - convert Date to ISO string
+    const historyInput: ChatMessageInput[] = messages.map(msg => ({
+        ...msg,
+        timestamp: msg.timestamp.toISOString()
+    }));
+    
+    try {
+      const aiResult = await getPatientAIChatResponse({
+        history: historyInput,
+        currentMessage: userMessage.text,
+        patientName: user?.name || undefined,
+      });
+      
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: "ai",
-        text: `I've received your message: "${userMessage.text}". As a demo, I'm just echoing this back. In a real app, I would provide a helpful medical chat response.`,
+        text: aiResult.response,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
+
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+      const errorResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: "ai",
+        text: "I'm sorry, I encountered an error trying to respond. Please try again later.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorResponse]);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   useEffect(() => {
@@ -77,7 +107,7 @@ export default function ChatInterface() {
                   : "bg-secondary text-secondary-foreground rounded-bl-none"
               )}
             >
-              <p className="text-sm">{message.text}</p>
+              <p className="text-sm whitespace-pre-wrap">{message.text}</p>
               <p className={cn(
                 "text-xs mt-1",
                 message.sender === "user" ? "text-primary-foreground/70 text-right" : "text-muted-foreground/70 text-left"
@@ -94,6 +124,18 @@ export default function ChatInterface() {
             )}
           </div>
         ))}
+         {isSending && messages[messages.length -1].sender === 'user' && (
+           <div className="flex items-end space-x-2 justify-start">
+             <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  <Bot size={18} />
+                </AvatarFallback>
+              </Avatar>
+              <div className="max-w-xs lg:max-w-md p-3 rounded-lg shadow bg-secondary text-secondary-foreground rounded-bl-none">
+                <p className="text-sm">MediChat is thinking...</p>
+              </div>
+           </div>
+        )}
       </ScrollArea>
       <form onSubmit={handleSubmit} className="flex items-center p-4 border-t">
         <Input
@@ -102,8 +144,9 @@ export default function ChatInterface() {
           placeholder="Type your message..."
           className="flex-1 mr-2 text-base"
           aria-label="Chat message input"
+          disabled={isSending}
         />
-        <Button type="submit" size="icon" aria-label="Send message">
+        <Button type="submit" size="icon" aria-label="Send message" disabled={isSending || !inputValue.trim()}>
           <CornerDownLeft size={20} />
         </Button>
       </form>

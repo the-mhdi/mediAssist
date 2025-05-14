@@ -44,3 +44,8 @@ export interface ChatMessage {
   text: string;
   timestamp: Date;
 }
+
+// For Genkit flow input, ensures serializability
+export interface ChatMessageInput extends Omit<ChatMessage, 'timestamp'> {
+  timestamp: string; // Store timestamp as ISO string for flow input
+}
