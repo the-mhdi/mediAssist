@@ -19,14 +19,14 @@ const ChatMessageSchema = z.object({
   timestamp: z.string().describe("ISO date string for the message timestamp."),
 });
 
-export const PatientChatInputSchema = z.object({
+const PatientChatInputSchema = z.object({
   history: z.array(ChatMessageSchema).describe("The history of the conversation so far."),
   currentMessage: z.string().describe("The latest message from the user."),
   patientName: z.string().optional().describe("The name of the patient, if available."),
 });
 export type PatientChatInput = z.infer<typeof PatientChatInputSchema>;
 
-export const PatientChatOutputSchema = z.object({
+const PatientChatOutputSchema = z.object({
   response: z.string().describe("The AI's response to the user's message."),
 });
 export type PatientChatOutput = z.infer<typeof PatientChatOutputSchema>;
@@ -88,3 +88,4 @@ const patientChatFlow = ai.defineFlow(
     return output;
   }
 );
+
